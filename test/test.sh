@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CACHE="$HOME/.cache/tarpoon_cache"
+CACHE="$HOME/.cache/tarpoon_cache2"
 
 touch "$CACHE"
 
@@ -100,7 +100,6 @@ Switch_tarpoon() {
     # echo "$len_index" && echo "$index" && echo "$len"
     if [[ "$index" -le 0 || "$index" -gt "$len" ]]; then
         notify-send "Invalid Index" "$index"
-        exit 0
     fi
 
     path=$(Index_tarpoon | awk -v i="$index" 'NR==i {print $2}')
