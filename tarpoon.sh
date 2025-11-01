@@ -34,6 +34,15 @@ Add_tarpoon() {
     fi
 }
 
+Already_harpoon() {
+    already_session="$1"
+    current_session=$(tmux display-message -p '#S')
+    # echo "$current_session $already_session"
+    if [[ "$already_session" == "$current_session" ]]; then
+        notify-send "Already inside the session" "$current_session"
+    fi
+}
+
 Make_tarpoon() {
     # echo "$path"
     session_name="$1"
@@ -75,6 +84,8 @@ Jump_tarpoon() {
     # echo "$tsession"
     # echo "$tpath"
 
+    Already_harpoon "$tsession"
+
     if [ -n "$path" ]; then
         if [ -n "$TMUX" ]; then
             Check_tarpoon "$tsession" "$tpath"
@@ -90,7 +101,6 @@ Switch_tarpoon() {
     # echo "$len_index" && echo "$index" && echo "$len"
     if [[ "$index" -le 0 || "$index" -gt "$len" ]]; then
         notify-send "Invalid Index" "$index"
-        exit 0
     fi
 
     session_name=$(Index_tarpoon | awk -v i="$index" 'NR==i {print $2}')
@@ -98,6 +108,8 @@ Switch_tarpoon() {
 
     echo "$session_name"
     echo "$path"
+
+    Already_harpoon
 
     Check_tarpoon "$session_name" "$path"
 }
@@ -123,12 +135,56 @@ Help_tarpoon() {
     echo "    -H                       Track current tmux session"
     echo "    -h                       List tracked sessions and choose one interactively"
     echo "    -h <index>               Switch to the tarpoon session at the given index"
+    echo "    -hn                      Jump to the next tracked session"
+    echo "    -hp                      Jump to the previous tracked session"
     echo "    -readme                  For more info"
     echo "    -help                    Display this help message"
     echo "Examples: "
     echo "    ${0##*/} -H"
     echo "    ${0##*/} -h"
     echo "    ${0##*/} -h 2"
+    echo "    ${0##*/} -hn"
+    echo "    ${0##*/} -hp"
+}
+
+Next_tarpoon() {
+    current_session="$(tmux display-message -p '#S')"
+    total="$(Index_tarpoon | awk '{print $1}' | tail -n 1)"
+
+    current_index=$(Index_tarpoon | awk -v s="$current_session" '$2 == s {print NR}')
+    next_index=$((current_index + 1))
+
+    if [[ "$next_index" = "$total" ]]; then
+        next_index=1
+    fi
+
+    session_name=$(Index_tarpoon | awk -v i="$next_index" 'NR==i {print $2}')
+    path=$(Index_tarpoon | awk -v i="$next_index" 'NR==i {print $3}')
+
+    notify-send "Next_tarpoon" "$session_name"
+    Check_tarpoon "$session_name" "$path"
+}
+
+Previous_tarpoon() {
+
+    current_session="$(tmux display-message -p '#S')"
+    total="$(Index_tarpoon | awk '{print $1}' | tail -n 1)"
+    total=$((total - 1))
+    echo "$total"
+
+    current_index=$(Index_tarpoon | awk -v s="$current_session" '$2 == s {print NR}')
+    prev_index=$((current_index - 1))
+
+    if [[ "$prev_index" -lt 1 ]]; then
+        prev_index="$total"
+
+    fi
+
+    session_name=$(Index_tarpoon | awk -v i="$prev_index" 'NR==i {print $2}')
+    path=$(Index_tarpoon | awk -v i="$prev_index" 'NR==i {print $3}')
+
+    notify-send "Previous tarpoon" "$session_name"
+    Check_tarpoon "$session_name" "$path"
 }
 
 Def_tarpoon
@@ -139,6 +195,12 @@ case "$value" in
     ;;
 -h)
     Combine_tarpoon "$2"
+    ;;
+-hn)
+    Next_tarpoon
+    ;;
+-hp)
+    Previous_tarpoon
     ;;
 -readme)
     Readme_tarpoon
